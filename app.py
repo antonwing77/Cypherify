@@ -85,6 +85,17 @@ app.index_string = '''
                 .mobile-overlay.active {
                     display: block;
                 }
+                /* Mobile AI chat fixes */
+                #ai-chat-history {
+                    height: 50vh !important;
+                    max-height: 400px !important;
+                    overflow-y: auto !important;
+                    -webkit-overflow-scrolling: touch !important;
+                }
+                /* Ensure sticky positioning doesn't break on mobile */
+                .col-md-3 .card {
+                    position: relative !important;
+                }
             }
             
             /* Touch-friendly buttons */
@@ -416,13 +427,17 @@ app.layout = dbc.Container([
                         html.Div(
                             id="ai-chat-history",
                             style={
-                                'height': '30vh',
+                                'height': '40vh',
+                                'maxHeight': '500px',
+                                'minHeight': '300px',
                                 'overflowY': 'auto',
+                                'overflowX': 'hidden',
                                 'marginBottom': '10px',
                                 'padding': '10px',
                                 'background': '#f8f9fa',
                                 'borderRadius': '6px',
-                                'fontSize': '0.85rem'
+                                'fontSize': '0.85rem',
+                                'WebkitOverflowScrolling': 'touch'
                             },
                             children=[
                                 html.P("Ask me about cryptography!", 
@@ -455,7 +470,7 @@ app.layout = dbc.Container([
                         ], className="input-area")
                     ], className="p-2")
                 ], id="ai-chat-collapse", is_open=True)
-            ], style={'position': 'sticky', 'top': '10px'})
+            ])
         ], width=12, md=3, className="mt-3 mt-md-0")
     ], className="mt-2")
 ], fluid=True, className="p-2 p-md-3", style={'maxWidth': '1600px'})
