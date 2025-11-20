@@ -1,14 +1,14 @@
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
 class AITeacher:
     def __init__(self):
         """Initialize the AI Teacher with OpenAI API."""
-        # Check for API key in environment
-        self.api_key = os.getenv('OPENAI_API_KEY') or os.getenv('ANTHROPIC_API_KEY')
+        # Get API key from environment
+        self.api_key = os.getenv('OPENAI_API_KEY')
         self.enabled = bool(self.api_key)
         self.client = None
         
