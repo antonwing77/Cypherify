@@ -1,23 +1,22 @@
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
 class AITeacher:
     def __init__(self):
         """Initialize the AI Teacher with OpenAI API."""
-        self.enabled = False
+        # Check for API key in environment
+        self.api_key = os.getenv('OPENAI_API_KEY') or os.getenv('ANTHROPIC_API_KEY')
+        self.enabled = bool(self.api_key)
         self.client = None
         
-        # Get API key from environment
-        api_key = os.getenv('OPENAI_API_KEY')
-        
         # Only initialize if API key exists and is valid
-        if api_key and api_key.strip() and not api_key.startswith('your_'):
+        if self.api_key and self.api_key.strip() and not self.api_key.startswith('your_'):
             try:
                 from openai import OpenAI
-                self.client = OpenAI(api_key=api_key)
+                self.client = OpenAI(api_key=self.api_key)
                 self.enabled = True
                 print("✓ AI Teacher initialized successfully")
             except Exception as e:

@@ -297,8 +297,8 @@ app.layout = dbc.Container([
                         ])
                     ], className="p-2")
                 ], style={'position': 'sticky', 'top': '10px'})
-            ], id="sidebar-wrapper", className="d-none d-md-block")
-        ], width=12, md=2, className="mobile-sidebar", id="mobile-sidebar"),
+            ], id="sidebar-wrapper")
+        ], width=12, md=2, className="mobile-sidebar", id="mobile-sidebar", style={'display': 'none'}),
         
         # Main content - Responsive
         dbc.Col([
@@ -818,6 +818,7 @@ def handle_ai_chat(n_clicks, question, current_cipher, chat_history, conv_histor
 # Add mobile menu callbacks
 @app.callback(
     [Output("mobile-sidebar", "className"),
+     Output("mobile-sidebar", "style"),
      Output("mobile-overlay", "className")],
     [Input("mobile-menu-btn", "n_clicks"),
      Input("mobile-close-btn", "n_clicks"),
@@ -828,7 +829,7 @@ def handle_ai_chat(n_clicks, question, current_cipher, chat_history, conv_histor
 )
 def toggle_mobile_menu(open_clicks, close_clicks, overlay_clicks, cipher_clicks, current_class):
     if ctx.triggered_id == "mobile-menu-btn":
-        return "mobile-sidebar open", "mobile-overlay active"
+        return "mobile-sidebar open", {'display': 'block'}, "mobile-overlay active"
     else:
         # Close on any other action
-        return "mobile-sidebar", "mobile-overlay"
+        return "mobile-sidebar", {'display': 'none'}, "mobile-overlay"
