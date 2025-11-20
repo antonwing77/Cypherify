@@ -1,19 +1,30 @@
 import os
 from dotenv import load_dotenv
-from openai import OpenAI
 
 # Load environment variables
 load_dotenv()
 
 class AITeacher:
     def __init__(self):
+        """Initialize the AI Teacher with OpenAI API."""
+        self.enabled = False
+        self.client = None
+        
+        # Get API key from environment
         api_key = os.getenv('OPENAI_API_KEY')
-        if not api_key:
-            self.client = None
-            self.enabled = False
+        
+        # Only initialize if API key exists and is valid
+        if api_key and api_key.strip() and not api_key.startswith('your_'):
+            try:
+                from openai import OpenAI
+                self.client = OpenAI(api_key=api_key)
+                self.enabled = True
+                print("✓ AI Teacher initialized successfully")
+            except Exception as e:
+                print(f"⚠ AI Teacher initialization failed: {e}")
+                self.enabled = False
         else:
-            self.client = OpenAI(api_key=api_key)
-            self.enabled = True
+            print("⚠ AI Teacher disabled: No valid API key found")
         
         self.system_prompt = """You are an expert cryptography teacher helping students learn about encryption and ciphers. 
 You are part of an educational web application called Cypherify that teaches various encryption methods.
