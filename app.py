@@ -29,6 +29,17 @@ app.index_string = '''
         {%css%}
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <style>
+            /* Desktop styles - sidebar always visible */
+            @media (min-width: 769px) {
+                .mobile-sidebar {
+                    display: block !important;
+                    position: static !important;
+                    width: 100% !important;
+                    height: auto !important;
+                    box-shadow: none !important;
+                }
+            }
+            
             /* Mobile-friendly styles */
             @media (max-width: 768px) {
                 .container-fluid {
@@ -309,7 +320,7 @@ app.layout = dbc.Container([
                     ], className="p-2")
                 ], style={'position': 'sticky', 'top': '10px'})
             ], id="sidebar-wrapper")
-        ], width=12, md=2, className="mobile-sidebar", id="mobile-sidebar", style={'display': 'none'}),
+        ], width=12, md=2, className="mobile-sidebar", id="mobile-sidebar"),
         
         # Main content - Responsive
         dbc.Col([
@@ -853,7 +864,6 @@ def handle_ai_chat(n_clicks, question, current_cipher, chat_history, conv_histor
 # Add mobile menu callbacks
 @app.callback(
     [Output("mobile-sidebar", "className"),
-     Output("mobile-sidebar", "style"),
      Output("mobile-overlay", "className")],
     [Input("mobile-menu-btn", "n_clicks"),
      Input("mobile-close-btn", "n_clicks"),
@@ -864,7 +874,7 @@ def handle_ai_chat(n_clicks, question, current_cipher, chat_history, conv_histor
 )
 def toggle_mobile_menu(open_clicks, close_clicks, overlay_clicks, cipher_clicks, current_class):
     if ctx.triggered_id == "mobile-menu-btn":
-        return "mobile-sidebar open", {'display': 'block'}, "mobile-overlay active"
+        return "mobile-sidebar open", "mobile-overlay active"
     else:
         # Close on any other action
-        return "mobile-sidebar", {'display': 'none'}, "mobile-overlay"
+        return "mobile-sidebar", "mobile-overlay"
