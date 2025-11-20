@@ -11,9 +11,134 @@ from components.visualizations import create_frequency_chart, create_rsa_diagram
 from ai_teacher import AITeacher
 
 # Initialize app
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(__name__, external_stylesheets=[
+    dbc.themes.BOOTSTRAP,
+    "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
+])
 app.title = "Cypherify - Educational Cipher Tool"
-server = app.server  # Expose the Flask server for deployment
+server = app.server
+
+# Add custom CSS for mobile responsiveness
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <style>
+            /* Mobile-friendly styles */
+            @media (max-width: 768px) {
+                .container-fluid {
+                    padding: 0.5rem !important;
+                }
+                .card {
+                    margin-bottom: 0.75rem !important;
+                }
+                .card-body {
+                    padding: 0.75rem !important;
+                }
+                .btn {
+                    padding: 0.5rem 0.75rem !important;
+                    font-size: 0.9rem !important;
+                }
+                h1 {
+                    font-size: 1.5rem !important;
+                }
+                h5, h6 {
+                    font-size: 1rem !important;
+                }
+                .accordion-button {
+                    padding: 0.5rem 0.75rem !important;
+                    font-size: 0.85rem !important;
+                }
+                textarea {
+                    font-size: 0.9rem !important;
+                }
+                .mobile-sidebar {
+                    position: fixed !important;
+                    top: 0;
+                    left: -100%;
+                    width: 80%;
+                    height: 100vh;
+                    z-index: 1050;
+                    background: white;
+                    transition: left 0.3s ease;
+                    overflow-y: auto;
+                    box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+                }
+                .mobile-sidebar.open {
+                    left: 0;
+                }
+                .mobile-overlay {
+                    display: none;
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.5);
+                    z-index: 1049;
+                }
+                .mobile-overlay.active {
+                    display: block;
+                }
+            }
+            
+            /* Touch-friendly buttons */
+            .btn-sm {
+                min-height: 38px;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+            }
+            
+            /* Smooth scrolling */
+            html {
+                scroll-behavior: smooth;
+            }
+            
+            /* Animation for chat bubbles */
+            @keyframes slideInRight {
+                from {
+                    opacity: 0;
+                    transform: translateX(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+            
+            @keyframes slideInLeft {
+                from {
+                    opacity: 0;
+                    transform: translateX(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+            
+            @keyframes typing {
+                0%, 60%, 100% { opacity: 0.3; }
+                30% { opacity: 1; }
+            }
+        </style>
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+'''
 
 # Initialize AI Teacher
 ai_teacher = AITeacher()
@@ -52,10 +177,22 @@ for category in CIPHERS.values():
 
 # Layout
 app.layout = dbc.Container([
-    # Simplified Header
+    # Mobile overlay for sidebar
+    html.Div(id="mobile-overlay", className="mobile-overlay"),
+    
+    # Simplified Header with mobile menu button
     dbc.Row([
         dbc.Col([
-            html.H1("Cypherify", className="text-center mb-1", style={'fontSize': '2rem'}),
+            html.Div([
+                dbc.Button(
+                    html.I(className="bi bi-list"),
+                    id="mobile-menu-btn",
+                    color="primary",
+                    className="d-md-none me-2",
+                    style={'position': 'fixed', 'top': '10px', 'left': '10px', 'zIndex': '1051'}
+                ),
+                html.H1("Cypherify", className="text-center mb-1", style={'fontSize': '2rem'}),
+            ], className="d-flex align-items-center justify-content-center"),
             html.P("Educational Cryptography Tool", 
                    className="text-center text-muted mb-2",
                    style={'fontSize': '0.95rem'}),
@@ -67,93 +204,103 @@ app.layout = dbc.Container([
     ]),
     
     dbc.Row([
-        # Simplified Left Sidebar with Collapsible Categories
+        # Left Sidebar - Responsive
         dbc.Col([
-            dbc.Card([
-                dbc.CardBody([
-                    html.H6("Ciphers", className="mb-3"),
-                    
-                    # Classical - Collapsible
-                    dbc.Accordion([
-                        dbc.AccordionItem([
-                            html.Div([
-                                dbc.Button(
-                                    cipher.get_name(),
-                                    id={'type': 'cipher-btn', 'cipher': key},
-                                    color="primary" if key == 'caesar' else "light",
-                                    outline=key != 'caesar',
-                                    className="mb-1 w-100 text-start btn-sm",
-                                    size="sm"
-                                ) for key, cipher in CIPHERS['classical'].items()
-                            ])
-                        ], title="Classical Ciphers"),
+            html.Div([
+                dbc.Card([
+                    dbc.CardBody([
+                        html.Div([
+                            html.H6("Ciphers", className="mb-3"),
+                            dbc.Button(
+                                html.I(className="bi bi-x-lg"),
+                                id="mobile-close-btn",
+                                color="link",
+                                className="d-md-none position-absolute top-0 end-0 m-2 text-dark"
+                            )
+                        ], style={'position': 'relative'}),
                         
-                        dbc.AccordionItem([
-                            html.Div([
-                                dbc.Button(
-                                    cipher.get_name(),
-                                    id={'type': 'cipher-btn', 'cipher': key},
-                                    color="light",
-                                    outline=True,
-                                    className="mb-1 w-100 text-start btn-sm",
-                                    size="sm"
-                                ) for key, cipher in CIPHERS['transposition'].items()
-                            ])
-                        ], title="Transposition"),
+                        # Classical - Collapsible
+                        dbc.Accordion([
+                            dbc.AccordionItem([
+                                html.Div([
+                                    dbc.Button(
+                                        cipher.get_name(),
+                                        id={'type': 'cipher-btn', 'cipher': key},
+                                        color="primary" if key == 'caesar' else "light",
+                                        outline=key != 'caesar',
+                                        className="mb-1 w-100 text-start btn-sm",
+                                        size="sm"
+                                    ) for key, cipher in CIPHERS['classical'].items()
+                                ])
+                            ], title="Classical Ciphers"),
+                            
+                            dbc.AccordionItem([
+                                html.Div([
+                                    dbc.Button(
+                                        cipher.get_name(),
+                                        id={'type': 'cipher-btn', 'cipher': key},
+                                        color="light",
+                                        outline=True,
+                                        className="mb-1 w-100 text-start btn-sm",
+                                        size="sm"
+                                    ) for key, cipher in CIPHERS['transposition'].items()
+                                ])
+                            ], title="Transposition"),
+                            
+                            dbc.AccordionItem([
+                                html.Div([
+                                    dbc.Button(
+                                        cipher.get_name(),
+                                        id={'type': 'cipher-btn', 'cipher': key},
+                                        color="light",
+                                        outline=True,
+                                        className="mb-1 w-100 text-start btn-sm",
+                                        size="sm"
+                                    ) for key, cipher in CIPHERS['substitution'].items()
+                                ])
+                            ], title="Encoding"),
+                            
+                            dbc.AccordionItem([
+                                html.Div([
+                                    dbc.Button(
+                                        cipher.get_name(),
+                                        id={'type': 'cipher-btn', 'cipher': key},
+                                        color="light",
+                                        outline=True,
+                                        className="mb-1 w-100 text-start btn-sm",
+                                        size="sm"
+                                    ) for key, cipher in CIPHERS['modern'].items()
+                                ])
+                            ], title="Modern Crypto"),
+                        ], start_collapsed=False, always_open=True, flush=True),
                         
-                        dbc.AccordionItem([
-                            html.Div([
-                                dbc.Button(
-                                    cipher.get_name(),
-                                    id={'type': 'cipher-btn', 'cipher': key},
-                                    color="light",
-                                    outline=True,
-                                    className="mb-1 w-100 text-start btn-sm",
-                                    size="sm"
-                                ) for key, cipher in CIPHERS['substitution'].items()
-                            ])
-                        ], title="Encoding"),
+                        html.Hr(className="my-2"),
                         
-                        dbc.AccordionItem([
-                            html.Div([
-                                dbc.Button(
-                                    cipher.get_name(),
-                                    id={'type': 'cipher-btn', 'cipher': key},
-                                    color="light",
-                                    outline=True,
-                                    className="mb-1 w-100 text-start btn-sm",
-                                    size="sm"
-                                ) for key, cipher in CIPHERS['modern'].items()
-                            ])
-                        ], title="Modern Crypto"),
-                    ], start_collapsed=False, always_open=True, flush=True),
-                    
-                    html.Hr(className="my-2"),
-                    
-                    # Analysis as direct button
-                    html.Div([
-                        dbc.Button(
-                            "PIN/Password Analysis",
-                            id={'type': 'cipher-btn', 'cipher': 'password_strength'},
-                            color="light",
-                            outline=True,
-                            className="w-100 text-start btn-sm mb-1",
-                            size="sm"
-                        ),
-                        dbc.Button(
-                            "Auto-Detect & Decrypt",
-                            id={'type': 'cipher-btn', 'cipher': 'auto_detect'},
-                            color="light",
-                            outline=True,
-                            className="w-100 text-start btn-sm",
-                            size="sm"
-                        )
-                    ])
-                ], className="p-2")
-            ], style={'position': 'sticky', 'top': '10px'})
-        ], width=2, style={'maxHeight': '90vh', 'overflowY': 'auto'}),
+                        # Analysis as direct button
+                        html.Div([
+                            dbc.Button(
+                                "PIN/Password Analysis",
+                                id={'type': 'cipher-btn', 'cipher': 'password_strength'},
+                                color="light",
+                                outline=True,
+                                className="w-100 text-start btn-sm mb-1",
+                                size="sm"
+                            ),
+                            dbc.Button(
+                                "Auto-Detect & Decrypt",
+                                id={'type': 'cipher-btn', 'cipher': 'auto_detect'},
+                                color="light",
+                                outline=True,
+                                className="w-100 text-start btn-sm",
+                                size="sm"
+                            )
+                        ])
+                    ], className="p-2")
+                ], style={'position': 'sticky', 'top': '10px'})
+            ], id="sidebar-wrapper", className="d-none d-md-block")
+        ], width=12, md=2, className="mobile-sidebar", id="mobile-sidebar"),
         
-        # Main content - More spacious
+        # Main content - Responsive
         dbc.Col([
             dcc.Store(id='selected-cipher', data='caesar'),
             
@@ -162,7 +309,7 @@ app.layout = dbc.Container([
                     [
                         # Simplified description card
                         dbc.Card([
-                            dbc.CardHeader(cipher.get_name()),
+                            dbc.CardHeader(cipher.get_name(), className="py-2"),
                             dbc.CardBody([
                                 dcc.Markdown(cipher.get_description(), className="markdown small"),
                                 dbc.Badge(cipher.get_security_warning(), color="danger", className="mt-2")
@@ -176,7 +323,7 @@ app.layout = dbc.Container([
                                 dbc.Textarea(
                                     id={'type': 'input-text', 'cipher': key},
                                     placeholder="Enter text...",
-                                    style={'height': '80px'},
+                                    style={'height': '80px', 'fontSize': '0.9rem'},
                                     className="mb-2"
                                 ),
                                 
@@ -205,25 +352,28 @@ app.layout = dbc.Container([
                                                 label=param['label'],
                                                 value=param['default']
                                             )
-                                        ], width=12 if param['type'] == 'select' else 6)
+                                        ], width=12, md=6 if param['type'] != 'select' else 12)
                                     ], className="mb-2")
                                     for param in cipher.get_parameters()
                                 ]),
                                 
-                                # Compact buttons
+                                # Compact buttons - stacked on mobile
                                 dbc.Row([
                                     dbc.Col([
-                                        dbc.Button("Encrypt" if key not in ['password_strength', 'auto_detect'] else "Analyze",
-                                            id={'type': 'encrypt-btn', 'cipher': key}, 
-                                            color="primary", 
-                                            className="me-1",
-                                            size="sm"),
-                                        dbc.Button("Decrypt" if key not in ['password_strength', 'auto_detect'] else "Analyze",
-                                            id={'type': 'decrypt-btn', 'cipher': key}, 
-                                            color="success",
-                                            size="sm",
-                                            style={'display': 'none' if key in ['password_strength', 'auto_detect'] else 'inline-block'}),
-                                    ])
+                                        dbc.ButtonGroup([
+                                            dbc.Button("Encrypt" if key not in ['password_strength', 'auto_detect'] else "Analyze",
+                                                id={'type': 'encrypt-btn', 'cipher': key}, 
+                                                color="primary", 
+                                                className="flex-grow-1",
+                                                size="sm"),
+                                            dbc.Button("Decrypt",
+                                                id={'type': 'decrypt-btn', 'cipher': key}, 
+                                                color="success",
+                                                className="flex-grow-1",
+                                                size="sm",
+                                                style={'display': 'none' if key in ['password_strength', 'auto_detect'] else 'inline-block'}),
+                                        ], className="w-100 d-flex")
+                                    ], width=12)
                                 ])
                             ], className="p-2")
                         ], className="mb-2"),
@@ -237,14 +387,17 @@ app.layout = dbc.Container([
                 for key, cipher in ALL_CIPHERS.items()
             ])
             
-        ], width=7, style={'maxHeight': '90vh', 'overflowY': 'auto'}),
+        ], width=12, md=7, style={'maxHeight': '90vh', 'overflowY': 'auto'}),
         
-        # Minimizable AI Chat
+        # AI Chat - Collapsible on mobile
         dbc.Col([
             dbc.Card([
                 dbc.CardHeader([
                     html.Div([
-                        html.Span("AI Assistant", className="fw-bold"),
+                        html.Span([
+                            html.I(className="bi bi-robot me-2"),
+                            "AI Assistant"
+                        ], className="fw-bold"),
                         html.Div([
                             dbc.Button(
                                 html.I(className="bi bi-dash-lg", id="ai-toggle-icon"),
@@ -263,7 +416,7 @@ app.layout = dbc.Container([
                         html.Div(
                             id="ai-chat-history",
                             style={
-                                'height': '40vh',
+                                'height': '30vh',
                                 'overflowY': 'auto',
                                 'marginBottom': '10px',
                                 'padding': '10px',
@@ -303,9 +456,9 @@ app.layout = dbc.Container([
                     ], className="p-2")
                 ], id="ai-chat-collapse", is_open=True)
             ], style={'position': 'sticky', 'top': '10px'})
-        ], width=3)
+        ], width=12, md=3, className="mt-3 mt-md-0")
     ], className="mt-2")
-], fluid=True, className="p-3", style={'maxWidth': '1600px'})
+], fluid=True, className="p-2 p-md-3", style={'maxWidth': '1600px'})
 
 # Add minimize callback
 @app.callback(
@@ -662,5 +815,20 @@ def handle_ai_chat(n_clicks, question, current_cipher, chat_history, conv_histor
     # Clear input and return updated chat
     return new_chat_history, conv_history, ""
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# Add mobile menu callbacks
+@app.callback(
+    [Output("mobile-sidebar", "className"),
+     Output("mobile-overlay", "className")],
+    [Input("mobile-menu-btn", "n_clicks"),
+     Input("mobile-close-btn", "n_clicks"),
+     Input("mobile-overlay", "n_clicks"),
+     Input({'type': 'cipher-btn', 'cipher': ALL}, 'n_clicks')],
+    [State("mobile-sidebar", "className")],
+    prevent_initial_call=True
+)
+def toggle_mobile_menu(open_clicks, close_clicks, overlay_clicks, cipher_clicks, current_class):
+    if ctx.triggered_id == "mobile-menu-btn":
+        return "mobile-sidebar open", "mobile-overlay active"
+    else:
+        # Close on any other action
+        return "mobile-sidebar", "mobile-overlay"
