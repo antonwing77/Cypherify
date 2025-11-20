@@ -472,7 +472,29 @@ app.layout = dbc.Container([
                 ], id="ai-chat-collapse", is_open=True)
             ])
         ], width=12, md=3, className="mt-3 mt-md-0")
-    ], className="mt-2")
+    ], className="mt-2"),
+    
+    # Footer with GitHub link
+    dbc.Row([
+        dbc.Col([
+            html.Hr(className="mt-4 mb-3"),
+            html.Div([
+                html.P([
+                    "Made with ",
+                    html.I(className="bi bi-heart-fill text-danger"),
+                    " by Anton | ",
+                    html.A([
+                        html.I(className="bi bi-github me-1"),
+                        "View on GitHub"
+                    ], 
+                    href="https://github.com/antonwing77/cypherify",
+                    target="_blank",
+                    className="text-decoration-none",
+                    style={'color': '#0d6efd'})
+                ], className="text-center text-muted small mb-2")
+            ])
+        ])
+    ])
 ], fluid=True, className="p-2 p-md-3", style={'maxWidth': '1600px'})
 
 # Add minimize callback
