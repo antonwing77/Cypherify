@@ -480,9 +480,7 @@ app.layout = dbc.Container([
             html.Hr(className="mt-4 mb-3"),
             html.Div([
                 html.P([
-                    "Made with ",
-                    html.I(className="bi bi-heart-fill text-danger"),
-                    " by Anton | ",
+                    "Made by Anton | ",
                     html.A([
                         html.I(className="bi bi-github me-1"),
                         "View on GitHub"
