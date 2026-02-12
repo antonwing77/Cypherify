@@ -358,3 +358,5 @@ class AffineCipher(BaseCipher):
         final_score = (frequency_score * 0.3) + (word_score * 0.7)
         
         return final_score
+
+    # By Anton Wingeier

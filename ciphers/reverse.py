@@ -41,3 +41,5 @@ class ReverseCipher(BaseCipher):
     def decrypt(self, ciphertext: str, **params) -> Dict[str, Any]:
         # Reversing is its own inverse
         return self.encrypt(ciphertext, **params)
+
+    # By Anton Wingeier

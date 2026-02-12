@@ -91,6 +91,8 @@ class RailFenceCipher(BaseCipher):
             'steps': steps,
             'visualization_data': None
         }
+
+    # By Anton Wingeier
     
     def decrypt(self, ciphertext: str, rails: int = 3, brute_force: bool = False, **params) -> Dict[str, Any]:
         if brute_force:

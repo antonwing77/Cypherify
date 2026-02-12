@@ -69,3 +69,5 @@ class ROT13Cipher(BaseCipher):
     def decrypt(self, ciphertext: str, **params) -> Dict[str, Any]:
         # ROT13 is its own inverse
         return self.encrypt(ciphertext, **params)
+
+    # By Anton Wingeier

@@ -23,6 +23,8 @@ def create_frequency_chart(freq_data: Counter):
     
     return fig
 
+# By Anton Wingeier
+
 def create_rsa_diagram(p, q, n, e, d, phi):
     """Create a visual diagram of RSA key generation."""
     fig = go.Figure()

@@ -31,6 +31,8 @@ class AESCipher(BaseCipher):
                 'label': 'Key (16, 24, or 32 characters)',
                 'default': 'SIXTEENBYTE_KEY!'
             }
+
+# By Anton Wingeier
         ]
     
     def encrypt(self, plaintext: str, key: str = 'SIXTEENBYTE_KEY!', **params) -> Dict[str, Any]:

@@ -108,6 +108,8 @@ class RSACipher(BaseCipher):
             'public_key': f"{e},{n}",
             'private_key': f"{d},{n}"
         }
+
+    # By Anton Wingeier
     
     def encrypt(self, plaintext: str, action_type: str = 'generate', public_key: str = '', **params) -> Dict[str, Any]:
         steps = []

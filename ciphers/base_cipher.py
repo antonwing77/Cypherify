@@ -31,3 +31,5 @@ class BaseCipher(ABC):
     def get_security_warning(self) -> str:
         """Return security warning for educational purposes."""
         return "WARNING: EDUCATIONAL ONLY - NOT FOR REAL-WORLD SECURITY USE"
+
+    # By Anton Wingeier

@@ -80,6 +80,8 @@ class BaconCipher(BaseCipher):
             'steps': steps,
             'visualization_data': None
         }
+
+    # By Anton Wingeier
     
     def decrypt(self, ciphertext: str, format: str = 'AB', **params) -> Dict[str, Any]:
         steps = []

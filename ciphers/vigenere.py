@@ -89,6 +89,8 @@ class VigenereCipher(BaseCipher):
                 'data': freq_data
             }
         }
+
+    # By Anton Wingeier
     
     def decrypt(self, ciphertext: str, keyword: str = 'KEY', brute_force: bool = False, **params) -> Dict[str, Any]:
         if brute_force:

@@ -9,3 +9,4 @@ services:
         value: 3.11.7
       - key: OPENAI_API_KEY
         sync: false
+      # By Anton Wingeier

@@ -65,6 +65,8 @@ class MorseCipher(BaseCipher):
             'steps': steps,
             'visualization_data': None
         }
+
+    # By Anton Wingeier
     
     def decrypt(self, ciphertext: str, **params) -> Dict[str, Any]:
         steps = []

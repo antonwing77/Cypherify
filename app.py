@@ -878,3 +878,5 @@ def toggle_mobile_menu(open_clicks, close_clicks, overlay_clicks, cipher_clicks,
     else:
         # Close on any other action
         return "mobile-sidebar", "mobile-overlay"
+
+    # By Anton Wingeier

@@ -194,3 +194,5 @@ class CaesarCipher(BaseCipher):
         very_common_bonus = sum(15 for word in words if word in very_common)
         
         return (word_ratio * 100) + long_word_bonus + very_common_bonus
+
+    # By Anton Wingeier

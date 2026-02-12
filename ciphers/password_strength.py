@@ -87,6 +87,8 @@ class PasswordStrengthCipher(BaseCipher):
             'steps': [],
             'visualization_data': None
         }
+
+    # By Anton Wingeier
     
     def _brute_force_4pin_optimized(self, target: str) -> Dict[str, Any]:
         """Brute force 4-digit PIN trying common patterns first."""

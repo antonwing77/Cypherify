@@ -18,3 +18,5 @@ __all__ = [
     'RailFenceCipher', 'MorseCipher', 'ReverseCipher', 'PasswordStrengthCipher',
     'AutoDetectCipher'
 ]
+
+# By Anton Wingeier

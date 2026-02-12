@@ -56,6 +56,8 @@ If asked about implementing real security, always recommend using established li
                 'success': False,
                 'error': 'AI Teacher is not configured. Please add your OpenAI API key to the .env file.'
             }
+
+# By Anton Wingeier
         
         try:
             # Build the message with context

@@ -71,6 +71,8 @@ class A1Z26Cipher(BaseCipher):
             'steps': steps,
             'visualization_data': None
         }
+
+    # By Anton Wingeier
     
     def decrypt(self, ciphertext: str, separator: str = '-', **params) -> Dict[str, Any]:
         steps = []
