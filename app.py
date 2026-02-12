@@ -1,5 +1,5 @@
 import dash
-from dash import dcc, html, Input, Output, State, ALL, callback_context, ctx
+from dash import dcc, html, Input, Output, State, ALL, MATCH, callback_context, ctx
 import dash_bootstrap_components as dbc
 from ciphers import (
     CaesarCipher, VigenereCipher, AESCipher, RSACipher,
@@ -15,8 +15,42 @@ app = dash.Dash(__name__, external_stylesheets=[
     dbc.themes.BOOTSTRAP,
     "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
 ])
-app.title = "Cypherify - Educational Cipher Tool"
+app.title = "Cypherify - Learn Cryptography"
 server = app.server
+
+# Icons for each cipher in the sidebar
+CIPHER_ICONS = {
+    'caesar': 'bi-key-fill',
+    'vigenere': 'bi-grid-3x3-gap-fill',
+    'rot13': 'bi-arrow-repeat',
+    'affine': 'bi-calculator-fill',
+    'railfence': 'bi-bar-chart-steps',
+    'reverse': 'bi-arrow-left-right',
+    'a1z26': 'bi-123',
+    'bacon': 'bi-braces',
+    'morse': 'bi-broadcast-pin',
+    'aes': 'bi-shield-lock-fill',
+    'rsa': 'bi-lock-fill',
+    'password_strength': 'bi-shield-check',
+    'auto_detect': 'bi-search',
+}
+
+# Example texts for quick testing
+EXAMPLE_TEXTS = {
+    'caesar': 'The quick brown fox jumps over the lazy dog',
+    'vigenere': 'Attack at dawn, the enemy approaches from the north',
+    'rot13': 'Hello World! This is a secret message.',
+    'affine': 'Meet me at the park at midnight',
+    'railfence': 'We are discovered, flee at once',
+    'reverse': 'This message is hidden backwards',
+    'a1z26': 'Hello World',
+    'bacon': 'Secret',
+    'morse': 'SOS We need help',
+    'aes': 'Top secret: the treasure is buried under the oak tree',
+    'rsa': 'Encrypt this sensitive data',
+    'password_strength': '1234',
+    'auto_detect': 'Khoor Zruog',
+}
 
 # Add custom CSS for mobile responsiveness
 app.index_string = '''
@@ -39,7 +73,7 @@ app.index_string = '''
                     box-shadow: none !important;
                 }
             }
-            
+
             /* Mobile-friendly styles */
             @media (max-width: 768px) {
                 .container-fluid {
@@ -107,8 +141,12 @@ app.index_string = '''
                 .col-md-3 .card {
                     position: relative !important;
                 }
+                .feature-pill {
+                    font-size: 0.65rem !important;
+                    padding: 0.2rem 0.5rem !important;
+                }
             }
-            
+
             /* Touch-friendly buttons */
             .btn-sm {
                 min-height: 38px;
@@ -116,12 +154,12 @@ app.index_string = '''
                 align-items: center;
                 justify-content: flex-start;
             }
-            
+
             /* Smooth scrolling */
             html {
                 scroll-behavior: smooth;
             }
-            
+
             /* Animation for chat bubbles */
             @keyframes slideInRight {
                 from {
@@ -133,7 +171,7 @@ app.index_string = '''
                     transform: translateX(0);
                 }
             }
-            
+
             @keyframes slideInLeft {
                 from {
                     opacity: 0;
@@ -144,7 +182,7 @@ app.index_string = '''
                     transform: translateX(0);
                 }
             }
-            
+
             @keyframes typing {
                 0%, 60%, 100% { opacity: 0.3; }
                 30% { opacity: 1; }
@@ -158,6 +196,52 @@ app.index_string = '''
             {%scripts%}
             {%renderer%}
         </footer>
+        <script>
+            // Enter key to send AI chat message (Shift+Enter for newline)
+            document.addEventListener('keydown', function(e) {
+                if (e.target && e.target.id === 'ai-question-input' && e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    var btn = document.getElementById('ask-ai-btn');
+                    if (btn && !btn.disabled) btn.click();
+                }
+            });
+
+            // Copy result to clipboard
+            document.addEventListener('click', function(e) {
+                var copyBtn = e.target.closest('.copy-result-btn');
+                if (copyBtn) {
+                    var card = copyBtn.closest('.card');
+                    var textarea = card ? card.querySelector('textarea') : null;
+                    if (textarea) {
+                        navigator.clipboard.writeText(textarea.value).then(function() {
+                            var icon = copyBtn.querySelector('i');
+                            var span = copyBtn.querySelector('span');
+                            if (icon) icon.className = 'bi bi-check-lg me-1';
+                            if (span) span.textContent = 'Copied!';
+                            setTimeout(function() {
+                                if (icon) icon.className = 'bi bi-clipboard me-1';
+                                if (span) span.textContent = 'Copy';
+                            }, 2000);
+                        });
+                    }
+                }
+            });
+
+            // Scroll to top button visibility
+            window.addEventListener('scroll', function() {
+                var btn = document.getElementById('scroll-top-btn');
+                if (btn) {
+                    btn.style.display = window.scrollY > 300 ? 'flex' : 'none';
+                }
+            });
+
+            // Scroll to top action
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('#scroll-top-btn')) {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+        </script>
     </body>
 </html>
 '''
@@ -197,12 +281,34 @@ ALL_CIPHERS = {}
 for category in CIPHERS.values():
     ALL_CIPHERS.update(category)
 
+
+def make_cipher_btn(key, cipher, default_selected='caesar'):
+    """Create a sidebar cipher button with an icon."""
+    icon_class = CIPHER_ICONS.get(key, 'bi-circle')
+    return dbc.Button(
+        [html.I(className=f"{icon_class} me-2"), cipher.get_name()],
+        id={'type': 'cipher-btn', 'cipher': key},
+        color="primary" if key == default_selected else "light",
+        outline=key != default_selected,
+        className="cipher-nav-btn",
+        size="sm"
+    )
+
+
 # Layout
 app.layout = dbc.Container([
     # Mobile overlay for sidebar
     html.Div(id="mobile-overlay", className="mobile-overlay"),
-    
-    # Simplified Header with mobile menu button
+
+    # Scroll to top button
+    html.Button(
+        html.I(className="bi bi-chevron-up"),
+        id="scroll-top-btn",
+        className="scroll-top-btn",
+        style={'display': 'none'}
+    ),
+
+    # Header
     dbc.Row([
         dbc.Col([
             html.Div([
@@ -213,18 +319,25 @@ app.layout = dbc.Container([
                     className="d-md-none me-2",
                     style={'position': 'fixed', 'top': '10px', 'left': '10px', 'zIndex': '1051'}
                 ),
-                html.H1("Cypherify", className="text-center mb-1", style={'fontSize': '2rem'}),
+                html.H1("Cypherify", className="text-center mb-1", style={'fontSize': '2.25rem'}),
             ], className="d-flex align-items-center justify-content-center"),
-            html.P("Educational Cryptography Tool", 
-                   className="text-center text-muted mb-2",
-                   style={'fontSize': '0.95rem'}),
+            html.P("Learn cryptography by doing. Encrypt, decrypt, and explore how ciphers work.",
+                   className="text-center hero-subtitle mb-3"),
+            # Feature pills
+            html.Div([
+                html.Span([html.I(className="bi bi-key-fill"), " 13 Ciphers"], className="feature-pill"),
+                html.Span([html.I(className="bi bi-lightbulb-fill"), " Step-by-Step"], className="feature-pill"),
+                html.Span([html.I(className="bi bi-bar-chart-fill"), " Visualizations"], className="feature-pill"),
+                html.Span([html.I(className="bi bi-robot"), " AI Assistant"], className="feature-pill"),
+            ], className="text-center mb-3"),
             dbc.Alert([
+                html.I(className="bi bi-info-circle-fill me-2"),
                 html.Strong("Educational Purpose Only"),
-                " - Not for production use"
+                " - These implementations are for learning, not production use."
             ], color="warning", className="mb-3 py-2", style={'fontSize': '0.85rem'})
         ])
     ]),
-    
+
     dbc.Row([
         # Left Sidebar - Responsive
         dbc.Col([
@@ -232,7 +345,10 @@ app.layout = dbc.Container([
                 dbc.Card([
                     dbc.CardBody([
                         html.Div([
-                            html.H6("Ciphers", className="mb-3"),
+                            html.H6([
+                                html.I(className="bi bi-collection-fill me-2"),
+                                "Ciphers"
+                            ], className="mb-3 fw-bold"),
                             dbc.Button(
                                 html.I(className="bi bi-x-lg"),
                                 id="mobile-close-btn",
@@ -240,123 +356,115 @@ app.layout = dbc.Container([
                                 className="d-md-none position-absolute top-0 end-0 m-2 text-dark"
                             )
                         ], style={'position': 'relative'}),
-                        
+
                         # Classical - Collapsible
                         dbc.Accordion([
                             dbc.AccordionItem([
                                 html.Div([
-                                    dbc.Button(
-                                        cipher.get_name(),
-                                        id={'type': 'cipher-btn', 'cipher': key},
-                                        color="primary" if key == 'caesar' else "light",
-                                        outline=key != 'caesar',
-                                        className="mb-1 w-100 text-start btn-sm",
-                                        size="sm"
-                                    ) for key, cipher in CIPHERS['classical'].items()
+                                    make_cipher_btn(key, cipher)
+                                    for key, cipher in CIPHERS['classical'].items()
                                 ])
                             ], title="Classical Ciphers"),
-                            
+
                             dbc.AccordionItem([
                                 html.Div([
-                                    dbc.Button(
-                                        cipher.get_name(),
-                                        id={'type': 'cipher-btn', 'cipher': key},
-                                        color="light",
-                                        outline=True,
-                                        className="mb-1 w-100 text-start btn-sm",
-                                        size="sm"
-                                    ) for key, cipher in CIPHERS['transposition'].items()
+                                    make_cipher_btn(key, cipher)
+                                    for key, cipher in CIPHERS['transposition'].items()
                                 ])
                             ], title="Transposition"),
-                            
+
                             dbc.AccordionItem([
                                 html.Div([
-                                    dbc.Button(
-                                        cipher.get_name(),
-                                        id={'type': 'cipher-btn', 'cipher': key},
-                                        color="light",
-                                        outline=True,
-                                        className="mb-1 w-100 text-start btn-sm",
-                                        size="sm"
-                                    ) for key, cipher in CIPHERS['substitution'].items()
+                                    make_cipher_btn(key, cipher)
+                                    for key, cipher in CIPHERS['substitution'].items()
                                 ])
                             ], title="Encoding"),
-                            
+
                             dbc.AccordionItem([
                                 html.Div([
-                                    dbc.Button(
-                                        cipher.get_name(),
-                                        id={'type': 'cipher-btn', 'cipher': key},
-                                        color="light",
-                                        outline=True,
-                                        className="mb-1 w-100 text-start btn-sm",
-                                        size="sm"
-                                    ) for key, cipher in CIPHERS['modern'].items()
+                                    make_cipher_btn(key, cipher)
+                                    for key, cipher in CIPHERS['modern'].items()
                                 ])
                             ], title="Modern Crypto"),
                         ], start_collapsed=False, always_open=True, flush=True),
-                        
+
                         html.Hr(className="my-2"),
-                        
-                        # Analysis as direct button
+
+                        # Analysis tools
                         html.Div([
-                            dbc.Button(
-                                "PIN/Password Analysis",
-                                id={'type': 'cipher-btn', 'cipher': 'password_strength'},
-                                color="light",
-                                outline=True,
-                                className="w-100 text-start btn-sm mb-1",
-                                size="sm"
-                            ),
-                            dbc.Button(
-                                "Auto-Detect & Decrypt",
-                                id={'type': 'cipher-btn', 'cipher': 'auto_detect'},
-                                color="light",
-                                outline=True,
-                                className="w-100 text-start btn-sm",
-                                size="sm"
-                            )
+                            html.Div([
+                                html.Small("TOOLS", className="text-muted fw-bold",
+                                           style={'fontSize': '0.7rem', 'letterSpacing': '0.05em'}),
+                            ], className="mb-2 ms-1"),
+                            make_cipher_btn('password_strength', ALL_CIPHERS['password_strength']),
+                            make_cipher_btn('auto_detect', ALL_CIPHERS['auto_detect']),
                         ])
                     ], className="p-2")
                 ], style={'position': 'sticky', 'top': '10px'})
             ], id="sidebar-wrapper")
         ], width=12, md=2, className="mobile-sidebar", id="mobile-sidebar"),
-        
+
         # Main content - Responsive
         dbc.Col([
             dcc.Store(id='selected-cipher', data='caesar'),
-            
+
             html.Div([
                 html.Div(
                     [
-                        # Simplified description card
+                        # Description card
                         dbc.Card([
-                            dbc.CardHeader(cipher.get_name(), className="py-2"),
+                            dbc.CardHeader([
+                                html.Div([
+                                    html.Span([
+                                        html.I(className=f"{CIPHER_ICONS.get(key, 'bi-circle')} me-2"),
+                                        cipher.get_name()
+                                    ], className="fw-bold"),
+                                ], className="d-flex align-items-center justify-content-between")
+                            ], className="py-2"),
                             dbc.CardBody([
                                 dcc.Markdown(cipher.get_description(), className="markdown small"),
-                                dbc.Badge(cipher.get_security_warning(), color="danger", className="mt-2")
+                                dbc.Badge([
+                                    html.I(className="bi bi-exclamation-triangle-fill me-1"),
+                                    cipher.get_security_warning()
+                                ], color="danger", className="mt-2")
                             ], className="py-2")
                         ], className="mb-2"),
-                        
-                        # Compact input section
+
+                        # Input section
                         dbc.Card([
                             dbc.CardBody([
-                                html.Label("Input Text", className="small fw-bold mb-1"),
+                                html.Div([
+                                    html.Label("Input Text", className="small fw-bold mb-0"),
+                                    dbc.Button(
+                                        [html.I(className="bi bi-lightning-fill me-1"),
+                                         "Try Example"],
+                                        id={'type': 'example-btn', 'cipher': key},
+                                        className="example-btn",
+                                        size="sm",
+                                        outline=True,
+                                        color="primary"
+                                    ),
+                                ], className="d-flex align-items-center justify-content-between mb-1"),
                                 dbc.Textarea(
                                     id={'type': 'input-text', 'cipher': key},
-                                    placeholder="Enter text...",
+                                    placeholder="Enter your text here to encrypt or decrypt...",
                                     style={'height': '80px', 'fontSize': '0.9rem'},
-                                    className="mb-2"
+                                    className="mb-0"
                                 ),
-                                
-                                # Compact parameters
+                                html.Div(
+                                    "0 chars",
+                                    id={'type': 'char-count', 'cipher': key},
+                                    className="char-count mb-2"
+                                ),
+
+                                # Parameters
                                 html.Div([
                                     dbc.Row([
                                         dbc.Col([
                                             html.Label(param['label'], className="small fw-bold mb-1"),
                                             dbc.Select(
                                                 id={'type': 'param', 'cipher': key, 'name': param['name']},
-                                                options=[{'label': opt['label'], 'value': opt['value']} 
+                                                options=[{'label': opt['label'], 'value': opt['value']}
                                                         for opt in param['options']],
                                                 value=param['default'],
                                                 size="sm"
@@ -378,18 +486,22 @@ app.layout = dbc.Container([
                                     ], className="mb-2")
                                     for param in cipher.get_parameters()
                                 ]),
-                                
-                                # Compact buttons - stacked on mobile
+
+                                # Action buttons
                                 dbc.Row([
                                     dbc.Col([
                                         dbc.ButtonGroup([
-                                            dbc.Button("Encrypt" if key not in ['password_strength', 'auto_detect'] else "Analyze",
-                                                id={'type': 'encrypt-btn', 'cipher': key}, 
-                                                color="primary", 
+                                            dbc.Button(
+                                                [html.I(className="bi bi-lock-fill me-1"),
+                                                 "Encrypt" if key not in ['password_strength', 'auto_detect'] else "Analyze"],
+                                                id={'type': 'encrypt-btn', 'cipher': key},
+                                                color="primary",
                                                 className="flex-grow-1",
                                                 size="sm"),
-                                            dbc.Button("Decrypt",
-                                                id={'type': 'decrypt-btn', 'cipher': key}, 
+                                            dbc.Button(
+                                                [html.I(className="bi bi-unlock-fill me-1"),
+                                                 "Decrypt"],
+                                                id={'type': 'decrypt-btn', 'cipher': key},
                                                 color="success",
                                                 className="flex-grow-1",
                                                 size="sm",
@@ -399,7 +511,7 @@ app.layout = dbc.Container([
                                 ])
                             ], className="p-2")
                         ], className="mb-2"),
-                        
+
                         # Results
                         html.Div(id={'type': 'results-section', 'cipher': key})
                     ],
@@ -408,9 +520,9 @@ app.layout = dbc.Container([
                 )
                 for key, cipher in ALL_CIPHERS.items()
             ])
-            
+
         ], width=12, md=7, style={'maxHeight': '90vh', 'overflowY': 'auto'}),
-        
+
         # AI Chat - Collapsible on mobile
         dbc.Col([
             dbc.Card([
@@ -431,10 +543,10 @@ app.layout = dbc.Container([
                         ], style={'float': 'right'})
                     ])
                 ], className="py-2 px-3"),
-                
+
                 dbc.Collapse([
                     dbc.CardBody([
-                        # Compact chat area
+                        # Chat area
                         html.Div(
                             id="ai-chat-history",
                             style={
@@ -445,33 +557,45 @@ app.layout = dbc.Container([
                                 'overflowX': 'hidden',
                                 'marginBottom': '10px',
                                 'padding': '10px',
-                                'background': '#f8f9fa',
-                                'borderRadius': '6px',
+                                'background': '#f8fafc',
+                                'borderRadius': '8px',
                                 'fontSize': '0.85rem',
                                 'WebkitOverflowScrolling': 'touch'
                             },
                             children=[
-                                html.P("Ask me about cryptography!", 
-                                      className="text-muted small text-center mb-0")
+                                html.Div([
+                                    html.I(className="bi bi-chat-dots-fill d-block mb-2",
+                                           style={'fontSize': '1.5rem', 'color': '#94a3b8'}),
+                                    html.P("Ask me anything about cryptography!",
+                                          className="text-muted small mb-1"),
+                                    html.P("Try: \"How does Caesar cipher work?\"",
+                                          className="text-muted small mb-0",
+                                          style={'fontStyle': 'italic', 'fontSize': '0.75rem'})
+                                ], className="text-center", style={'paddingTop': '40%'})
                             ] if ai_teacher.enabled else [
-                                html.P("API key required", 
-                                      className="text-muted small text-center mb-0")
+                                html.Div([
+                                    html.I(className="bi bi-key-fill d-block mb-2",
+                                           style={'fontSize': '1.5rem', 'color': '#94a3b8'}),
+                                    html.P("Set OPENAI_API_KEY to enable the AI assistant.",
+                                          className="text-muted small mb-0")
+                                ], className="text-center", style={'paddingTop': '40%'})
                             ]
                         ),
-                        
+
                         dcc.Store(id='conversation-history', data=[]),
-                        
-                        # Compact input
+
+                        # Input area
                         html.Div([
                             dbc.Textarea(
                                 id="ai-question-input",
-                                placeholder="Ask a question...",
+                                placeholder="Ask a question... (Enter to send, Shift+Enter for newline)",
                                 style={'fontSize': '0.85rem'},
                                 disabled=not ai_teacher.enabled,
                                 rows=2,
                                 className="mb-2"
                             ),
-                            dbc.Button("Send",
+                            dbc.Button(
+                                [html.I(className="bi bi-send-fill me-1"), "Send"],
                                 id="ask-ai-btn",
                                 color="primary",
                                 disabled=not ai_teacher.enabled,
@@ -481,11 +605,11 @@ app.layout = dbc.Container([
                         ], className="input-area")
                     ], className="p-2")
                 ], id="ai-chat-collapse", is_open=True)
-            ])
+            ], style={'position': 'sticky', 'top': '10px'})
         ], width=12, md=3, className="mt-3 mt-md-0")
     ], className="mt-2"),
-    
-    # Footer with GitHub link
+
+    # Footer
     dbc.Row([
         dbc.Col([
             html.Hr(className="mt-4 mb-3"),
@@ -495,18 +619,47 @@ app.layout = dbc.Container([
                     html.A([
                         html.I(className="bi bi-github me-1"),
                         "View on GitHub"
-                    ], 
+                    ],
                     href="https://github.com/antonwing77/cypherify",
                     target="_blank",
-                    className="text-decoration-none",
-                    style={'color': '#0d6efd'})
+                    className="footer-link")
                 ], className="text-center text-muted small mb-2")
             ])
         ])
     ])
 ], fluid=True, className="p-2 p-md-3", style={'maxWidth': '1600px'})
 
-# Add minimize callback
+
+# ── Callbacks ──────────────────────────────────────────────────────────────────
+
+# Character count (clientside for performance)
+app.clientside_callback(
+    """
+    function(value) {
+        if (!value) return '0 chars';
+        var chars = value.length;
+        var words = value.trim().split(/\\s+/).filter(Boolean).length;
+        return chars + ' chars \\u00b7 ' + words + ' words';
+    }
+    """,
+    Output({'type': 'char-count', 'cipher': MATCH}, 'children'),
+    Input({'type': 'input-text', 'cipher': MATCH}, 'value'),
+    prevent_initial_call=True
+)
+
+# Fill example text
+@app.callback(
+    Output({'type': 'input-text', 'cipher': MATCH}, 'value'),
+    Input({'type': 'example-btn', 'cipher': MATCH}, 'n_clicks'),
+    prevent_initial_call=True
+)
+def fill_example_text(n_clicks):
+    if n_clicks:
+        cipher_key = ctx.triggered_id['cipher']
+        return EXAMPLE_TEXTS.get(cipher_key, 'Hello World')
+    return dash.no_update
+
+# Toggle AI chat panel
 @app.callback(
     [Output("ai-chat-collapse", "is_open"),
      Output("ai-toggle-icon", "className")],
@@ -519,7 +672,7 @@ def toggle_ai_chat(n_clicks, is_open):
         return False, "bi bi-plus-lg"
     return True, "bi bi-dash-lg"
 
-# Callbacks
+# Cipher selection
 @app.callback(
     [Output({'type': 'cipher-section', 'cipher': ALL}, 'style'),
      Output({'type': 'cipher-btn', 'cipher': ALL}, 'color'),
@@ -531,20 +684,17 @@ def toggle_ai_chat(n_clicks, is_open):
 )
 def toggle_cipher_sections(clicks, ids):
     selected = 'caesar'
-    
+
     if ctx.triggered_id:
-        # Get the cipher from the triggered button
         selected = ctx.triggered_id['cipher']
-    
-    # Create display styles
+
     styles = [{'display': 'block' if id_dict['cipher'] == selected else 'none'} for id_dict in ids]
-    
-    # Button colors and outlines
     colors = ['primary' if id_dict['cipher'] == selected else 'secondary' for id_dict in ids]
     outlines = [False if id_dict['cipher'] == selected else True for id_dict in ids]
-    
+
     return styles, colors, outlines, selected
 
+# Process cipher encrypt/decrypt
 @app.callback(
     Output({'type': 'results-section', 'cipher': ALL}, 'children'),
     [Input({'type': 'encrypt-btn', 'cipher': ALL}, 'n_clicks'),
@@ -556,25 +706,31 @@ def toggle_cipher_sections(clicks, ids):
      State({'type': 'decrypt-btn', 'cipher': ALL}, 'id')],
     prevent_initial_call=True
 )
-def process_cipher(encrypt_clicks, decrypt_clicks, input_texts, param_values, param_ids, 
+def process_cipher(encrypt_clicks, decrypt_clicks, input_texts, param_values, param_ids,
                    encrypt_btn_ids, decrypt_btn_ids):
     if not ctx.triggered_id:
         return [html.Div() for _ in ALL_CIPHERS]
-    
+
     selected_cipher = ctx.triggered_id['cipher']
     is_encrypt = ctx.triggered_id['type'] == 'encrypt-btn'
-    
+
     cipher_index = list(ALL_CIPHERS.keys()).index(selected_cipher)
     input_text = input_texts[cipher_index] if cipher_index < len(input_texts) else None
-    
+
     if not input_text:
-        return [html.Div() for _ in ALL_CIPHERS]
-    
+        empty_results = [html.Div() for _ in ALL_CIPHERS]
+        empty_results[cipher_index] = dbc.Alert(
+            [html.I(className="bi bi-info-circle me-2"),
+             "Please enter some text to process."],
+            color="info", className="mt-2"
+        )
+        return empty_results
+
     params = {}
     for val, id_dict in zip(param_values, param_ids):
         if id_dict['cipher'] == selected_cipher:
             params[id_dict['name']] = val
-    
+
     cipher = ALL_CIPHERS[selected_cipher]
     try:
         if is_encrypt:
@@ -582,13 +738,17 @@ def process_cipher(encrypt_clicks, decrypt_clicks, input_texts, param_values, pa
         else:
             result = cipher.decrypt(input_text, **params)
     except Exception as e:
-        error_result = dbc.Alert(f"Error: {str(e)}", color="danger")
+        error_result = dbc.Alert(
+            [html.I(className="bi bi-exclamation-triangle-fill me-2"),
+             f"Error: {str(e)}"],
+            color="danger"
+        )
         return [error_result if i == cipher_index else html.Div() for i in range(len(ALL_CIPHERS))]
-    
+
     # Check if this is a brute force result
     is_brute_force = '\n' in result['result'] and 'Shift' in result['result']
     has_brute_force_data = 'brute_force_results' in result
-    
+
     # If brute force and AI enabled, analyze results
     ai_analysis = None
     if has_brute_force_data and ai_teacher.enabled:
@@ -598,25 +758,36 @@ def process_cipher(encrypt_clicks, decrypt_clicks, input_texts, param_values, pa
         )
         if analysis['success'] and analysis['best_match']:
             ai_analysis = analysis
-    
+
+    # Build result card with copy button
+    result_header = html.Div([
+        html.Span([
+            html.I(className="bi bi-check-circle-fill me-2"),
+            "Result"
+        ], className="fw-bold"),
+        html.Button([
+            html.I(className="bi bi-clipboard me-1"),
+            html.Span("Copy")
+        ], className="btn btn-sm btn-outline-secondary copy-result-btn",
+           style={'fontSize': '0.75rem', 'padding': '0.2rem 0.6rem'})
+    ], className="d-flex align-items-center justify-content-between")
+
     components = [
         dbc.Card([
-            dbc.CardHeader(html.H5("Result")),
+            dbc.CardHeader(result_header),
             dbc.CardBody([
                 dbc.Textarea(
                     value=result['result'],
-                    style={'height': '400px' if is_brute_force else '100px', 'fontFamily': 'monospace'},
-                    readonly=True
-                ) if is_brute_force else
-                dbc.Textarea(
-                    value=result['result'],
-                    style={'height': '100px'},
+                    style={
+                        'height': '400px' if is_brute_force else '100px',
+                        'fontFamily': 'monospace'
+                    },
                     readonly=True
                 )
             ])
-        ], className="mb-4")
+        ], className="mb-3 result-card")
     ]
-    
+
     # Add AI Analysis card if available
     if ai_analysis:
         best = ai_analysis['best_match']
@@ -625,15 +796,15 @@ def process_cipher(encrypt_clicks, decrypt_clicks, input_texts, param_values, pa
             'medium': 'warning',
             'low': 'info'
         }.get(ai_analysis['confidence'], 'secondary')
-        
+
         components.insert(0, dbc.Card([
             dbc.CardHeader([
                 html.I(className="bi bi-robot me-2"),
-                "AI Analysis - Most Likely Correct Result"
+                "AI Analysis - Most Likely Result"
             ], className="bg-success text-white"),
             dbc.CardBody([
                 dbc.Alert([
-                    html.H6(f"🎯 {best['key']}", className="alert-heading"),
+                    html.H6(best['key'], className="alert-heading fw-bold"),
                     html.Hr(),
                     html.P(best['text'], style={'fontFamily': 'monospace', 'fontSize': '14px'}),
                     html.Hr(),
@@ -646,8 +817,8 @@ def process_cipher(encrypt_clicks, decrypt_clicks, input_texts, param_values, pa
                     ], className="mb-0 small")
                 ], color="success", className="mb-0")
             ])
-        ], className="mb-4"))
-    
+        ], className="mb-3"))
+
     # Steps
     if result['steps']:
         steps_components = []
@@ -655,34 +826,55 @@ def process_cipher(encrypt_clicks, decrypt_clicks, input_texts, param_values, pa
             steps_components.append(
                 dbc.Card([
                     dbc.CardBody([
-                        html.H6(step['title'], className="text-primary"),
-                        html.P(step['description'], className="mb-0", style={'whiteSpace': 'pre-wrap', 'fontFamily': 'monospace' if 'Shift' in step['description'] else 'inherit'})
-                    ])
-                ], className="mb-2")
+                        html.Div([
+                            html.Span(
+                                str(i + 1),
+                                className="badge bg-primary me-2",
+                                style={'fontSize': '0.7rem', 'minWidth': '22px',
+                                       'display': 'inline-flex', 'alignItems': 'center',
+                                       'justifyContent': 'center'}
+                            ),
+                            html.Span(step['title'], className="fw-bold small",
+                                      style={'color': '#4f46e5'})
+                        ], className="mb-2 d-flex align-items-center"),
+                        html.P(step['description'], className="mb-0 small",
+                               style={
+                                   'whiteSpace': 'pre-wrap',
+                                   'fontFamily': 'monospace' if 'Shift' in step['description'] else 'inherit',
+                                   'lineHeight': '1.6'
+                               })
+                    ], className="py-2 px-3")
+                ], className="step-card")
             )
-        
+
         components.append(
             dbc.Card([
-                dbc.CardHeader(html.H5("Step-by-Step Explanation")),
+                dbc.CardHeader([
+                    html.I(className="bi bi-list-ol me-2"),
+                    html.Span("Step-by-Step Explanation", className="fw-bold")
+                ]),
                 dbc.CardBody(steps_components)
-            ], className="mb-4")
+            ], className="mb-3")
         )
-    
+
     # Visualizations
     if result.get('visualization_data'):
         viz_data = result['visualization_data']
-        
+
         if viz_data['type'] == 'frequency':
             fig = create_frequency_chart(viz_data['data'])
             components.append(
                 dbc.Card([
-                    dbc.CardHeader(html.H5("Frequency Analysis")),
+                    dbc.CardHeader([
+                        html.I(className="bi bi-bar-chart-fill me-2"),
+                        html.Span("Frequency Analysis", className="fw-bold")
+                    ]),
                     dbc.CardBody([
                         dcc.Graph(figure=fig),
                         html.P("Letter frequency can reveal patterns in classical ciphers.",
-                               className="text-muted small")
+                               className="text-muted small mt-2 mb-0")
                     ])
-                ])
+                ], className="mb-3")
             )
         elif viz_data['type'] == 'rsa_keys':
             fig = create_rsa_diagram(
@@ -691,30 +883,35 @@ def process_cipher(encrypt_clicks, decrypt_clicks, input_texts, param_values, pa
             )
             components.append(
                 dbc.Card([
-                    dbc.CardHeader(html.H5("RSA Key Generation Visualization")),
+                    dbc.CardHeader([
+                        html.I(className="bi bi-diagram-3-fill me-2"),
+                        html.Span("RSA Key Generation", className="fw-bold")
+                    ]),
                     dbc.CardBody([
                         dcc.Graph(figure=fig),
                         html.P("This shows the mathematical relationship between RSA keys.",
-                               className="text-muted small")
+                               className="text-muted small mt-2 mb-0")
                     ])
-                ])
+                ], className="mb-3")
             )
         elif viz_data['type'] == 'block_structure':
             fig = create_block_diagram(viz_data['blocks'], viz_data['key_size'])
             components.append(
                 dbc.Card([
-                    dbc.CardHeader(html.H5("Block Structure Visualization")),
+                    dbc.CardHeader([
+                        html.I(className="bi bi-grid-3x3-gap-fill me-2"),
+                        html.Span("Block Structure", className="fw-bold")
+                    ]),
                     dbc.CardBody([
                         dcc.Graph(figure=fig),
                         html.P("AES processes data in 16-byte blocks.",
-                               className="text-muted small")
+                               className="text-muted small mt-2 mb-0")
                     ])
-                ])
+                ], className="mb-3")
             )
-    
+
     result_div = html.Div(components)
-    
-    # Return results only for the active cipher
+
     return [result_div if i == cipher_index else html.Div() for i in range(len(ALL_CIPHERS))]
 
 # AI Teacher Chat Callback
@@ -732,15 +929,13 @@ def process_cipher(encrypt_clicks, decrypt_clicks, input_texts, param_values, pa
 def handle_ai_chat(n_clicks, question, current_cipher, chat_history, conv_history):
     if not question or not question.strip():
         return chat_history, conv_history or [], question
-    
-    # Get cipher name for context
+
     cipher_name = ALL_CIPHERS[current_cipher].get_name() if current_cipher in ALL_CIPHERS else None
-    
-    # Initialize conversation history if None
+
     if conv_history is None:
         conv_history = []
-    
-    # Add user message bubble with modern styling
+
+    # User message bubble
     user_bubble = html.Div([
         html.Div([
             html.Div([
@@ -751,68 +946,30 @@ def handle_ai_chat(n_clicks, question, current_cipher, chat_history, conv_histor
                     'fontSize': '14px'
                 })
             ], style={
-                'backgroundColor': '#667eea',
+                'backgroundColor': '#4f46e5',
                 'color': 'white',
                 'padding': '12px 16px',
                 'borderRadius': '18px 18px 4px 18px',
                 'maxWidth': '85%',
                 'marginLeft': 'auto',
-                'boxShadow': '0 2px 4px rgba(102, 126, 234, 0.3)',
+                'boxShadow': '0 2px 8px rgba(79, 70, 229, 0.25)',
                 'animation': 'slideInRight 0.3s ease-out'
             })
         ], style={'marginBottom': '12px', 'textAlign': 'right'})
     ])
-    
-    # Add to chat history display
+
     new_chat_history = list(chat_history) + [user_bubble]
-    
-    # Add typing indicator with animation
-    typing_bubble = html.Div([
-        html.Div([
-            html.Div([
-                html.Div([
-                    html.Span("●", className="typing-dot", style={
-                        'animation': 'typing 1.4s infinite',
-                        'animationDelay': '0s',
-                        'fontSize': '8px',
-                        'marginRight': '3px'
-                    }),
-                    html.Span("●", className="typing-dot", style={
-                        'animation': 'typing 1.4s infinite',
-                        'animationDelay': '0.2s',
-                        'fontSize': '8px',
-                        'marginRight': '3px'
-                    }),
-                    html.Span("●", className="typing-dot", style={
-                        'animation': 'typing 1.4s infinite',
-                        'animationDelay': '0.4s',
-                        'fontSize': '8px'
-                    })
-                ], style={'color': '#999'})
-            ], style={
-                'backgroundColor': '#f1f3f5',
-                'padding': '12px 20px',
-                'borderRadius': '18px 18px 18px 4px',
-                'maxWidth': '85%',
-                'display': 'inline-block',
-                'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'
-            })
-        ], style={'marginBottom': '12px', 'animation': 'slideInLeft 0.3s ease-out'})
-    ])
-    
-    # Ask the AI with conversation history
+
+    # Ask the AI
     result = ai_teacher.ask(question, cipher_name, conv_history)
-    
+
     if result['success']:
-        # Add AI response to conversation history (for API)
         conv_history.append({"role": "user", "content": question})
         conv_history.append({"role": "assistant", "content": result['response']})
-        
-        # Keep only last 10 messages in history to avoid token limits
+
         if len(conv_history) > 10:
             conv_history = conv_history[-10:]
-        
-        # Add AI response bubble with modern styling
+
         ai_bubble = html.Div([
             html.Div([
                 html.Div([
@@ -825,19 +982,18 @@ def handle_ai_chat(n_clicks, question, current_cipher, chat_history, conv_histor
                         'lineHeight': '1.6'
                     })
                 ], style={
-                    'backgroundColor': '#f8f9fa',
+                    'backgroundColor': '#ffffff',
                     'padding': '12px 16px',
                     'borderRadius': '18px 18px 18px 4px',
                     'maxWidth': '85%',
                     'display': 'inline-block',
-                    'boxShadow': '0 2px 4px rgba(0,0,0,0.05)',
-                    'border': '1px solid #e9ecef'
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.06)',
+                    'border': '1px solid #e2e8f0'
                 })
             ], style={'marginBottom': '12px', 'animation': 'slideInLeft 0.3s ease-out'})
         ])
         new_chat_history.append(ai_bubble)
     else:
-        # Add error message with modern styling
         error_bubble = html.Div([
             html.Div([
                 html.Div([
@@ -846,22 +1002,21 @@ def handle_ai_chat(n_clicks, question, current_cipher, chat_history, conv_histor
                 ], className="mb-1"),
                 html.P(result.get('error', 'Unknown error'), className="mb-0 small")
             ], style={
-                'backgroundColor': '#fff5f5',
-                'color': '#c53030',
+                'backgroundColor': '#fef2f2',
+                'color': '#991b1b',
                 'padding': '12px 16px',
                 'borderRadius': '18px 18px 18px 4px',
                 'maxWidth': '85%',
                 'display': 'inline-block',
-                'border': '1px solid #feb2b2',
-                'boxShadow': '0 2px 4px rgba(197, 48, 48, 0.1)'
+                'border': '1px solid #fecaca',
+                'boxShadow': '0 2px 4px rgba(153, 27, 27, 0.1)'
             })
         ], style={'marginBottom': '12px'})
         new_chat_history.append(error_bubble)
-    
-    # Clear input and return updated chat
+
     return new_chat_history, conv_history, ""
 
-# Add mobile menu callbacks
+# Mobile menu toggle
 @app.callback(
     [Output("mobile-sidebar", "className"),
      Output("mobile-overlay", "className")],
@@ -876,7 +1031,6 @@ def toggle_mobile_menu(open_clicks, close_clicks, overlay_clicks, cipher_clicks,
     if ctx.triggered_id == "mobile-menu-btn":
         return "mobile-sidebar open", "mobile-overlay active"
     else:
-        # Close on any other action
         return "mobile-sidebar", "mobile-overlay"
 
     # By Anton Wingeier
