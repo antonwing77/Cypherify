@@ -794,7 +794,7 @@ def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, 
                         ], className="small fw-bold mb-1"),
                         dbc.Textarea(
                             value=keys.get('public', ''),
-                            style={'height': '120px', 'fontFamily': 'monospace',
+                            style={'height': '150px', 'fontFamily': 'monospace',
                                    'fontSize': '0.7rem', 'wordBreak': 'break-all'},
                             readonly=True
                         ),
@@ -812,7 +812,7 @@ def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, 
                         ], className="small fw-bold mb-1"),
                         dbc.Textarea(
                             value=keys.get('private', ''),
-                            style={'height': '120px', 'fontFamily': 'monospace',
+                            style={'height': '220px', 'fontFamily': 'monospace',
                                    'fontSize': '0.7rem', 'wordBreak': 'break-all'},
                             readonly=True
                         ),
@@ -821,16 +821,7 @@ def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, 
                             "Copy Private Key"
                         ], className="btn btn-danger copy-key-btn w-100 mt-2",
                            style={'fontSize': '0.9rem', 'padding': '0.6rem', 'minHeight': '44px'})
-                    ]),
-                    html.Hr(),
-                    html.Div([
-                        html.I(className="bi bi-check-circle-fill text-success me-2"),
-                        html.Span("Keys auto-filled into the fields above. ", className="small fw-bold"),
-                        html.Span("Share public key freely. ", className="small text-success"),
-                        html.Span("Never share private key!", className="small text-danger fw-bold"),
-                        html.Br(),
-                        html.Span("To encrypt: paste the recipient's public key, switch to 'Use Existing Keys', type your message, and hit Encrypt.", className="small text-muted"),
-                    ], className="mt-2")
+                    ])
                 ], className="p-3")
             ], className="mb-3 border-dark")
             return [key_card if i == cipher_index else html.Div() for i in range(len(ALL_CIPHERS))], keys
@@ -937,7 +928,7 @@ def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, 
                         ], className="mb-1"),
                         dbc.Textarea(
                             value=keys['public'],
-                            style={'height': '120px', 'fontFamily': 'monospace',
+                            style={'height': '150px', 'fontFamily': 'monospace',
                                    'fontSize': '0.7rem', 'wordBreak': 'break-all'},
                             readonly=True,
                             className="pub-key-field"
@@ -959,7 +950,7 @@ def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, 
                         ], className="mb-1"),
                         dbc.Textarea(
                             value=keys['private'],
-                            style={'height': '120px', 'fontFamily': 'monospace',
+                            style={'height': '220px', 'fontFamily': 'monospace',
                                    'fontSize': '0.7rem', 'wordBreak': 'break-all'},
                             readonly=True,
                             className="priv-key-field"
@@ -969,14 +960,7 @@ def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, 
                             "Copy Private Key"
                         ], className="btn btn-danger copy-key-btn w-100 mt-2",
                            style={'fontSize': '0.9rem', 'padding': '0.6rem', 'minHeight': '44px'})
-                    ]),
-                    html.Hr(),
-                    html.Div([
-                        html.I(className="bi bi-check-circle-fill text-success me-2"),
-                        html.Span("Keys auto-filled into the fields above. ", className="small fw-bold"),
-                        html.Span("Share public key freely. ", className="small text-success"),
-                        html.Span("Never share private key!", className="small text-danger fw-bold"),
-                    ], className="mt-2")
+                    ])
                 ], className="p-3")
             ], className="mb-3 border-dark")
         )
@@ -1113,19 +1097,6 @@ def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, 
     return [result_div if i == cipher_index else html.Div() for i in range(len(ALL_CIPHERS))], keys_data
 
 # Auto-fill AES key fields when keys are generated
-app.clientside_callback(
-    """
-    function(keys) {
-        if (!keys) return [window.dash_clientside.no_update, window.dash_clientside.no_update];
-        return [keys.public || '', keys.private || ''];
-    }
-    """,
-    [Output({'type': 'param', 'cipher': 'aes', 'name': 'public_key'}, 'value'),
-     Output({'type': 'param', 'cipher': 'aes', 'name': 'private_key'}, 'value')],
-    Input('aes-generated-keys', 'data'),
-    prevent_initial_call=True
-)
-
 # AI Teacher Chat Callback
 @app.callback(
     [Output("ai-chat-history", "children"),
