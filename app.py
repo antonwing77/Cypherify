@@ -508,6 +508,19 @@ app.layout = dbc.Container([
                                     for param in cipher.get_parameters()
                                 ]),
 
+                                # Generate Keys button (AES only)
+                                html.Div([
+                                    dbc.Button(
+                                        [html.I(className="bi bi-key-fill me-2"),
+                                         "Generate Key Pair"],
+                                        id={'type': 'genkeys-btn', 'cipher': key},
+                                        color="warning",
+                                        className="w-100 mb-2",
+                                        size="sm",
+                                        style={'minHeight': '42px', 'fontWeight': 'bold'}
+                                    )
+                                ], style={'display': 'block' if key == 'aes' else 'none'}),
+
                                 # Action buttons
                                 dbc.Row([
                                     dbc.Col([
@@ -715,11 +728,12 @@ def toggle_cipher_sections(clicks, ids):
 
     return styles, colors, outlines, selected
 
-# Process cipher encrypt/decrypt
+# Process cipher encrypt/decrypt/generate-keys
 @app.callback(
     Output({'type': 'results-section', 'cipher': ALL}, 'children'),
     [Input({'type': 'encrypt-btn', 'cipher': ALL}, 'n_clicks'),
-     Input({'type': 'decrypt-btn', 'cipher': ALL}, 'n_clicks')],
+     Input({'type': 'decrypt-btn', 'cipher': ALL}, 'n_clicks'),
+     Input({'type': 'genkeys-btn', 'cipher': ALL}, 'n_clicks')],
     [State({'type': 'input-text', 'cipher': ALL}, 'value'),
      State({'type': 'param', 'cipher': ALL, 'name': ALL}, 'value'),
      State({'type': 'param', 'cipher': ALL, 'name': ALL}, 'id'),
@@ -727,15 +741,92 @@ def toggle_cipher_sections(clicks, ids):
      State({'type': 'decrypt-btn', 'cipher': ALL}, 'id')],
     prevent_initial_call=True
 )
-def process_cipher(encrypt_clicks, decrypt_clicks, input_texts, param_values, param_ids,
+def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, param_values, param_ids,
                    encrypt_btn_ids, decrypt_btn_ids):
     if not ctx.triggered_id:
         return [html.Div() for _ in ALL_CIPHERS]
 
     selected_cipher = ctx.triggered_id['cipher']
-    is_encrypt = ctx.triggered_id['type'] == 'encrypt-btn'
+    trigger_type = ctx.triggered_id['type']
+    is_encrypt = trigger_type == 'encrypt-btn'
+    is_genkeys = trigger_type == 'genkeys-btn'
 
     cipher_index = list(ALL_CIPHERS.keys()).index(selected_cipher)
+
+    # Handle Generate Keys (AES only — no input text needed)
+    if is_genkeys and selected_cipher == 'aes':
+        cipher = ALL_CIPHERS['aes']
+        try:
+            result = cipher.encrypt('Key generation test', mode='generate')
+            keys = result.get('generated_keys', {})
+            key_card = dbc.Card([
+                dbc.CardHeader([
+                    html.I(className="bi bi-key-fill me-2"),
+                    html.Span("Your Key Pair", className="fw-bold"),
+                    html.Span(" — copy & save these!", className="text-danger small ms-2")
+                ], className="bg-dark text-white"),
+                dbc.CardBody([
+                    html.Div([
+                        html.Div([
+                            html.Label([
+                                html.I(className="bi bi-unlock-fill me-1"),
+                                "Public Key ",
+                                html.Span("(share this)", className="text-success fw-normal")
+                            ], className="small fw-bold mb-1"),
+                            html.Button([
+                                html.I(className="bi bi-clipboard me-1"),
+                                html.Span("Copy")
+                            ], className="btn btn-sm btn-outline-success copy-key-btn",
+                               style={'fontSize': '0.75rem', 'padding': '0.3rem 0.8rem',
+                                      'minHeight': '38px'})
+                        ], className="d-flex align-items-center justify-content-between mb-1"),
+                        dbc.Textarea(
+                            value=keys.get('public', ''),
+                            style={'height': '70px', 'fontFamily': 'monospace',
+                                   'fontSize': '0.7rem', 'wordBreak': 'break-all'},
+                            readonly=True
+                        )
+                    ], className="mb-3"),
+                    html.Div([
+                        html.Div([
+                            html.Label([
+                                html.I(className="bi bi-lock-fill me-1"),
+                                "Private Key ",
+                                html.Span("(keep SECRET)", className="text-danger fw-normal")
+                            ], className="small fw-bold mb-1"),
+                            html.Button([
+                                html.I(className="bi bi-clipboard me-1"),
+                                html.Span("Copy")
+                            ], className="btn btn-sm btn-outline-danger copy-key-btn",
+                               style={'fontSize': '0.75rem', 'padding': '0.3rem 0.8rem',
+                                      'minHeight': '38px'})
+                        ], className="d-flex align-items-center justify-content-between mb-1"),
+                        dbc.Textarea(
+                            value=keys.get('private', ''),
+                            style={'height': '70px', 'fontFamily': 'monospace',
+                                   'fontSize': '0.7rem', 'wordBreak': 'break-all'},
+                            readonly=True
+                        )
+                    ]),
+                    html.Hr(),
+                    html.Div([
+                        html.I(className="bi bi-info-circle me-2"),
+                        html.Span("Copy your public key and share it with anyone who wants to send you encrypted messages. ", className="small"),
+                        html.Span("Never share your private key!", className="small text-danger fw-bold"),
+                        html.Br(),
+                        html.Span("To encrypt: paste the recipient's public key into the Public Key field above, switch mode to 'Use Existing Keys', type your message, and hit Encrypt.", className="small text-muted"),
+                    ], className="mt-2")
+                ], className="p-3")
+            ], className="mb-3 border-dark")
+            return [key_card if i == cipher_index else html.Div() for i in range(len(ALL_CIPHERS))]
+        except Exception as e:
+            error_result = dbc.Alert(
+                [html.I(className="bi bi-exclamation-triangle-fill me-2"),
+                 f"Error generating keys: {str(e)}"],
+                color="danger"
+            )
+            return [error_result if i == cipher_index else html.Div() for i in range(len(ALL_CIPHERS))]
+
     input_text = input_texts[cipher_index] if cipher_index < len(input_texts) else None
 
     if not input_text:
