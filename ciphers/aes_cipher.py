@@ -201,7 +201,7 @@ class AESCipher(BaseCipher):
                 )
             })
 
-        return {
+        ret = {
             'result': result_str,
             'steps': steps,
             'visualization_data': {
@@ -210,6 +210,13 @@ class AESCipher(BaseCipher):
                 'key_size': 256
             }
         }
+        # Attach keys so the UI can display them with copy buttons
+        if mode == 'generate' or not public_key.strip():
+            ret['generated_keys'] = {
+                'public': pub_b64,
+                'private': priv_b64
+            }
+        return ret
 
     def decrypt(self, ciphertext: str, mode: str = 'generate', private_key: str = '', **params) -> Dict[str, Any]:
         steps = []

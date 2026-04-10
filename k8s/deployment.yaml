@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cypherify
+  labels:
+    app: cypherify
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cypherify
+  template:
+    metadata:
+      labels:
+        app: cypherify
+    spec:
+      containers:
+        - name: cypherify
+          image: cypherify:latest
+          ports:
+            - containerPort: 8050
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cypherify-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8050
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8050
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cypherify
+  labels:
+    app: cypherify
+spec:
+  type: ClusterIP
+  selector:
+    app: cypherify
+  ports:
+    - port: 80
+      targetPort: 8050
+      protocol: TCP

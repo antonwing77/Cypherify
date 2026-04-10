@@ -1,0 +1,18 @@
+[Unit]
+Description=Cypherify - Cryptography Educational Tool
+After=network.target
+
+[Service]
+Type=simple
+User=raspi1
+Group=raspi1
+WorkingDirectory=/home/raspi1/Cypherify
+EnvironmentFile=/home/raspi1/Cypherify/.env
+ExecStart=/home/raspi1/Cypherify/venv/bin/gunicorn app:server --bind 0.0.0.0:8050 --workers 2 --timeout 120
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
