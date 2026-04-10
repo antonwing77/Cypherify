@@ -501,7 +501,7 @@ app.layout = dbc.Container([
                                             dbc.Textarea(
                                                 id={'type': 'param', 'cipher': key, 'name': param['name']},
                                                 value=param['default'],
-                                                style={'height': '60px', 'fontSize': '0.75rem',
+                                                style={'height': '100px', 'fontSize': '0.75rem',
                                                        'fontFamily': 'monospace', 'wordBreak': 'break-all'},
                                                 className="mb-1"
                                             ) if param['type'] == 'textarea' else
@@ -787,54 +787,49 @@ def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, 
                 ], className="bg-dark text-white"),
                 dbc.CardBody([
                     html.Div([
-                        html.Div([
-                            html.Label([
-                                html.I(className="bi bi-unlock-fill me-1"),
-                                "Public Key ",
-                                html.Span("(share this)", className="text-success fw-normal")
-                            ], className="small fw-bold mb-1"),
-                            html.Button([
-                                html.I(className="bi bi-clipboard me-1"),
-                                html.Span("Copy")
-                            ], className="btn btn-sm btn-outline-success copy-key-btn",
-                               style={'fontSize': '0.75rem', 'padding': '0.3rem 0.8rem',
-                                      'minHeight': '38px'})
-                        ], className="d-flex align-items-center justify-content-between mb-1"),
+                        html.Label([
+                            html.I(className="bi bi-unlock-fill me-1"),
+                            "Public Key ",
+                            html.Span("(share this)", className="text-success fw-normal")
+                        ], className="small fw-bold mb-1"),
                         dbc.Textarea(
                             value=keys.get('public', ''),
-                            style={'height': '70px', 'fontFamily': 'monospace',
+                            style={'height': '120px', 'fontFamily': 'monospace',
                                    'fontSize': '0.7rem', 'wordBreak': 'break-all'},
                             readonly=True
-                        )
+                        ),
+                        html.Button([
+                            html.I(className="bi bi-clipboard me-1"),
+                            "Copy Public Key"
+                        ], className="btn btn-success copy-key-btn w-100 mt-2",
+                           style={'fontSize': '0.9rem', 'padding': '0.6rem', 'minHeight': '44px'})
                     ], className="mb-3"),
                     html.Div([
-                        html.Div([
-                            html.Label([
-                                html.I(className="bi bi-lock-fill me-1"),
-                                "Private Key ",
-                                html.Span("(keep SECRET)", className="text-danger fw-normal")
-                            ], className="small fw-bold mb-1"),
-                            html.Button([
-                                html.I(className="bi bi-clipboard me-1"),
-                                html.Span("Copy")
-                            ], className="btn btn-sm btn-outline-danger copy-key-btn",
-                               style={'fontSize': '0.75rem', 'padding': '0.3rem 0.8rem',
-                                      'minHeight': '38px'})
-                        ], className="d-flex align-items-center justify-content-between mb-1"),
+                        html.Label([
+                            html.I(className="bi bi-lock-fill me-1"),
+                            "Private Key ",
+                            html.Span("(keep SECRET)", className="text-danger fw-normal")
+                        ], className="small fw-bold mb-1"),
                         dbc.Textarea(
                             value=keys.get('private', ''),
-                            style={'height': '70px', 'fontFamily': 'monospace',
+                            style={'height': '120px', 'fontFamily': 'monospace',
                                    'fontSize': '0.7rem', 'wordBreak': 'break-all'},
                             readonly=True
-                        )
+                        ),
+                        html.Button([
+                            html.I(className="bi bi-clipboard me-1"),
+                            "Copy Private Key"
+                        ], className="btn btn-danger copy-key-btn w-100 mt-2",
+                           style={'fontSize': '0.9rem', 'padding': '0.6rem', 'minHeight': '44px'})
                     ]),
                     html.Hr(),
                     html.Div([
-                        html.I(className="bi bi-info-circle me-2"),
-                        html.Span("Copy your public key and share it with anyone who wants to send you encrypted messages. ", className="small"),
-                        html.Span("Never share your private key!", className="small text-danger fw-bold"),
+                        html.I(className="bi bi-check-circle-fill text-success me-2"),
+                        html.Span("Keys auto-filled into the fields above. ", className="small fw-bold"),
+                        html.Span("Share public key freely. ", className="small text-success"),
+                        html.Span("Never share private key!", className="small text-danger fw-bold"),
                         html.Br(),
-                        html.Span("To encrypt: paste the recipient's public key into the Public Key field above, switch mode to 'Use Existing Keys', type your message, and hit Encrypt.", className="small text-muted"),
+                        html.Span("To encrypt: paste the recipient's public key, switch to 'Use Existing Keys', type your message, and hit Encrypt.", className="small text-muted"),
                     ], className="mt-2")
                 ], className="p-3")
             ], className="mb-3 border-dark")
@@ -891,71 +886,6 @@ def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, 
         if analysis['success'] and analysis['best_match']:
             ai_analysis = analysis
 
-    # AES key display with copy buttons (if keys were generated)
-    if selected_cipher == 'aes' and result.get('generated_keys'):
-        keys = result['generated_keys']
-        components.append(
-            dbc.Card([
-                dbc.CardHeader([
-                    html.I(className="bi bi-key-fill me-2"),
-                    html.Span("Your Key Pair", className="fw-bold"),
-                    html.Span(" — copy & save these!", className="text-danger small ms-2")
-                ], className="bg-dark text-white"),
-                dbc.CardBody([
-                    # Public Key
-                    html.Div([
-                        html.Div([
-                            html.Label([
-                                html.I(className="bi bi-unlock-fill me-1"),
-                                "Public Key ",
-                                html.Span("(share this)", className="text-success fw-normal")
-                            ], className="small fw-bold mb-1"),
-                            html.Button([
-                                html.I(className="bi bi-clipboard me-1"),
-                                html.Span("Copy")
-                            ], className="btn btn-sm btn-outline-success copy-key-btn",
-                               id="copy-pub-key",
-                               style={'fontSize': '0.75rem', 'padding': '0.3rem 0.8rem',
-                                      'minHeight': '38px'},
-                               **{'data-key': keys['public']})
-                        ], className="d-flex align-items-center justify-content-between mb-1"),
-                        dbc.Textarea(
-                            value=keys['public'],
-                            style={'height': '60px', 'fontFamily': 'monospace',
-                                   'fontSize': '0.7rem', 'wordBreak': 'break-all'},
-                            readonly=True,
-                            className="pub-key-field"
-                        )
-                    ], className="mb-3"),
-                    # Private Key
-                    html.Div([
-                        html.Div([
-                            html.Label([
-                                html.I(className="bi bi-lock-fill me-1"),
-                                "Private Key ",
-                                html.Span("(keep SECRET)", className="text-danger fw-normal")
-                            ], className="small fw-bold mb-1"),
-                            html.Button([
-                                html.I(className="bi bi-clipboard me-1"),
-                                html.Span("Copy")
-                            ], className="btn btn-sm btn-outline-danger copy-key-btn",
-                               id="copy-priv-key",
-                               style={'fontSize': '0.75rem', 'padding': '0.3rem 0.8rem',
-                                      'minHeight': '38px'},
-                               **{'data-key': keys['private']})
-                        ], className="d-flex align-items-center justify-content-between mb-1"),
-                        dbc.Textarea(
-                            value=keys['private'],
-                            style={'height': '60px', 'fontFamily': 'monospace',
-                                   'fontSize': '0.7rem', 'wordBreak': 'break-all'},
-                            readonly=True,
-                            className="priv-key-field"
-                        )
-                    ])
-                ], className="p-3")
-            ], className="mb-3 border-dark")
-        )
-
     # Build result card with copy button
     result_header = html.Div([
         html.Span([
@@ -984,6 +914,72 @@ def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, 
             ])
         ], className="mb-3 result-card")
     ]
+
+    # AES key display with copy buttons (if keys were generated)
+    if selected_cipher == 'aes' and result.get('generated_keys'):
+        keys = result['generated_keys']
+        components.append(
+            dbc.Card([
+                dbc.CardHeader([
+                    html.I(className="bi bi-key-fill me-2"),
+                    html.Span("Your Key Pair", className="fw-bold"),
+                    html.Span(" — copy & save these!", className="text-danger small ms-2")
+                ], className="bg-dark text-white"),
+                dbc.CardBody([
+                    # Public Key
+                    html.Div([
+                        html.Div([
+                            html.Label([
+                                html.I(className="bi bi-unlock-fill me-1"),
+                                "Public Key ",
+                                html.Span("(share this)", className="text-success fw-normal")
+                            ], className="small fw-bold mb-1"),
+                        ], className="mb-1"),
+                        dbc.Textarea(
+                            value=keys['public'],
+                            style={'height': '120px', 'fontFamily': 'monospace',
+                                   'fontSize': '0.7rem', 'wordBreak': 'break-all'},
+                            readonly=True,
+                            className="pub-key-field"
+                        ),
+                        html.Button([
+                            html.I(className="bi bi-clipboard me-1"),
+                            "Copy Public Key"
+                        ], className="btn btn-success copy-key-btn w-100 mt-2",
+                           style={'fontSize': '0.9rem', 'padding': '0.6rem', 'minHeight': '44px'})
+                    ], className="mb-3"),
+                    # Private Key
+                    html.Div([
+                        html.Div([
+                            html.Label([
+                                html.I(className="bi bi-lock-fill me-1"),
+                                "Private Key ",
+                                html.Span("(keep SECRET)", className="text-danger fw-normal")
+                            ], className="small fw-bold mb-1"),
+                        ], className="mb-1"),
+                        dbc.Textarea(
+                            value=keys['private'],
+                            style={'height': '120px', 'fontFamily': 'monospace',
+                                   'fontSize': '0.7rem', 'wordBreak': 'break-all'},
+                            readonly=True,
+                            className="priv-key-field"
+                        ),
+                        html.Button([
+                            html.I(className="bi bi-clipboard me-1"),
+                            "Copy Private Key"
+                        ], className="btn btn-danger copy-key-btn w-100 mt-2",
+                           style={'fontSize': '0.9rem', 'padding': '0.6rem', 'minHeight': '44px'})
+                    ]),
+                    html.Hr(),
+                    html.Div([
+                        html.I(className="bi bi-check-circle-fill text-success me-2"),
+                        html.Span("Keys auto-filled into the fields above. ", className="small fw-bold"),
+                        html.Span("Share public key freely. ", className="small text-success"),
+                        html.Span("Never share private key!", className="small text-danger fw-bold"),
+                    ], className="mt-2")
+                ], className="p-3")
+            ], className="mb-3 border-dark")
+        )
 
     # Add AI Analysis card if available
     if ai_analysis:
