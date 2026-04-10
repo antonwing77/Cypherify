@@ -306,18 +306,25 @@ for category in CIPHERS.values():
 def make_cipher_btn(key, cipher, default_selected='caesar'):
     """Create a sidebar cipher button with an icon."""
     icon_class = CIPHER_ICONS.get(key, 'bi-circle')
-    return dbc.Button(
-        [html.I(className=f"{icon_class} me-2"), cipher.get_name()],
-        id={'type': 'cipher-btn', 'cipher': key},
-        color="primary" if key == default_selected else "light",
-        outline=key != default_selected,
-        className="cipher-nav-btn",
-        size="sm"
+    return dcc.Link(
+        dbc.Button(
+            [html.I(className=f"{icon_class} me-2"), cipher.get_name()],
+            id={'type': 'cipher-btn', 'cipher': key},
+            color="primary" if key == default_selected else "light",
+            outline=key != default_selected,
+            className="cipher-nav-btn w-100",
+            size="sm"
+        ),
+        href=f"/{key}",
+        style={'textDecoration': 'none', 'display': 'block'}
     )
 
 
 # Layout
 app.layout = dbc.Container([
+    # URL routing
+    dcc.Location(id='url', refresh=False),
+
     # Mobile overlay for sidebar
     html.Div(id="mobile-overlay", className="mobile-overlay"),
 
@@ -707,20 +714,24 @@ def toggle_ai_chat(n_clicks, is_open):
         return False, "bi bi-plus-lg"
     return True, "bi bi-dash-lg"
 
-# Cipher selection
+# Cipher selection (responds to URL changes and button clicks)
 @app.callback(
     [Output({'type': 'cipher-section', 'cipher': ALL}, 'style'),
      Output({'type': 'cipher-btn', 'cipher': ALL}, 'color'),
      Output({'type': 'cipher-btn', 'cipher': ALL}, 'outline'),
      Output('selected-cipher', 'data')],
-    [Input({'type': 'cipher-btn', 'cipher': ALL}, 'n_clicks')],
+    [Input('url', 'pathname'),
+     Input({'type': 'cipher-btn', 'cipher': ALL}, 'n_clicks')],
     [State({'type': 'cipher-btn', 'cipher': ALL}, 'id')],
     prevent_initial_call=False
 )
-def toggle_cipher_sections(clicks, ids):
+def toggle_cipher_sections(pathname, clicks, ids):
     selected = 'caesar'
 
-    if ctx.triggered_id:
+    # Check if URL triggered this
+    if pathname and pathname.strip('/') in ALL_CIPHERS:
+        selected = pathname.strip('/')
+    elif ctx.triggered_id and isinstance(ctx.triggered_id, dict) and 'cipher' in ctx.triggered_id:
         selected = ctx.triggered_id['cipher']
 
     styles = [{'display': 'block' if id_dict['cipher'] == selected else 'none'} for id_dict in ids]
