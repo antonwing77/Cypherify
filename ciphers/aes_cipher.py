@@ -44,13 +44,13 @@ class AESCipher(BaseCipher):
             },
             {
                 'name': 'public_key',
-                'type': 'text',
+                'type': 'textarea',
                 'label': 'Public Key (Base64 — paste recipient\'s public key here)',
                 'default': ''
             },
             {
                 'name': 'private_key',
-                'type': 'text',
+                'type': 'textarea',
                 'label': 'Private Key (Base64 — keep this SECRET)',
                 'default': ''
             }
@@ -104,7 +104,15 @@ class AESCipher(BaseCipher):
             })
         else:
             pub_b64 = public_key.strip()
-            pub_pem = self._b64_to_pem(pub_b64)
+            try:
+                pub_pem = self._b64_to_pem(pub_b64)
+            except Exception as e:
+                expected_len = 604
+                return {
+                    'result': f'Error: Invalid public key. Make sure you copied the ENTIRE key ({expected_len} characters). Your key is {len(pub_b64)} characters. ({e})',
+                    'steps': [{'title': 'Error', 'description': f'The public key appears truncated or corrupted. Expected ~{expected_len} characters, got {len(pub_b64)}. Make sure you copied the complete key.'}],
+                    'visualization_data': None
+                }
             priv_b64 = params.get('private_key', '')
             steps.append({
                 'title': 'Step 1: Using Provided Public Key',

@@ -498,6 +498,13 @@ app.layout = dbc.Container([
                                                 value=param['default'],
                                                 size="sm"
                                             ) if param['type'] == 'select' else
+                                            dbc.Textarea(
+                                                id={'type': 'param', 'cipher': key, 'name': param['name']},
+                                                value=param['default'],
+                                                style={'height': '60px', 'fontSize': '0.75rem',
+                                                       'fontFamily': 'monospace', 'wordBreak': 'break-all'},
+                                                className="mb-1"
+                                            ) if param['type'] == 'textarea' else
                                             dbc.Input(
                                                 id={'type': 'param', 'cipher': key, 'name': param['name']},
                                                 type='number' if param['type'] == 'number' else 'text',
