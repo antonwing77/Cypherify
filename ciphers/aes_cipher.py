@@ -79,7 +79,12 @@ class AESCipher(BaseCipher):
         return base64.b64encode(pem_bytes).decode('utf-8')
 
     def _b64_to_pem(self, b64_str: str) -> bytes:
-        """Restore PEM from single-line Base64."""
+        """Restore PEM from single-line Base64. Auto-fix padding."""
+        b64_str = b64_str.strip()
+        # Fix missing Base64 padding (= signs)
+        missing_padding = len(b64_str) % 4
+        if missing_padding:
+            b64_str += '=' * (4 - missing_padding)
         return base64.b64decode(b64_str)
 
     def encrypt(self, plaintext: str, mode: str = 'generate', public_key: str = '', **params) -> Dict[str, Any]:
