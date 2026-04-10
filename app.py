@@ -428,6 +428,7 @@ app.layout = dbc.Container([
         # Main content - Responsive
         dbc.Col([
             dcc.Store(id='selected-cipher', data='caesar'),
+            dcc.Store(id='aes-generated-keys', data=None),
 
             html.Div([
                 html.Div(
@@ -730,7 +731,8 @@ def toggle_cipher_sections(clicks, ids):
 
 # Process cipher encrypt/decrypt/generate-keys
 @app.callback(
-    Output({'type': 'results-section', 'cipher': ALL}, 'children'),
+    [Output({'type': 'results-section', 'cipher': ALL}, 'children'),
+     Output('aes-generated-keys', 'data')],
     [Input({'type': 'encrypt-btn', 'cipher': ALL}, 'n_clicks'),
      Input({'type': 'decrypt-btn', 'cipher': ALL}, 'n_clicks'),
      Input({'type': 'genkeys-btn', 'cipher': ALL}, 'n_clicks')],
@@ -744,7 +746,7 @@ def toggle_cipher_sections(clicks, ids):
 def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, param_values, param_ids,
                    encrypt_btn_ids, decrypt_btn_ids):
     if not ctx.triggered_id:
-        return [html.Div() for _ in ALL_CIPHERS]
+        return [html.Div() for _ in ALL_CIPHERS], dash.no_update
 
     selected_cipher = ctx.triggered_id['cipher']
     trigger_type = ctx.triggered_id['type']
@@ -818,14 +820,14 @@ def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, 
                     ], className="mt-2")
                 ], className="p-3")
             ], className="mb-3 border-dark")
-            return [key_card if i == cipher_index else html.Div() for i in range(len(ALL_CIPHERS))]
+            return [key_card if i == cipher_index else html.Div() for i in range(len(ALL_CIPHERS))], keys
         except Exception as e:
             error_result = dbc.Alert(
                 [html.I(className="bi bi-exclamation-triangle-fill me-2"),
                  f"Error generating keys: {str(e)}"],
                 color="danger"
             )
-            return [error_result if i == cipher_index else html.Div() for i in range(len(ALL_CIPHERS))]
+            return [error_result if i == cipher_index else html.Div() for i in range(len(ALL_CIPHERS))], dash.no_update
 
     input_text = input_texts[cipher_index] if cipher_index < len(input_texts) else None
 
@@ -836,7 +838,7 @@ def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, 
              "Please enter some text to process."],
             color="info", className="mt-2"
         )
-        return empty_results
+        return empty_results, dash.no_update
 
     params = {}
     for val, id_dict in zip(param_values, param_ids):
@@ -855,7 +857,7 @@ def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, 
              f"Error: {str(e)}"],
             color="danger"
         )
-        return [error_result if i == cipher_index else html.Div() for i in range(len(ALL_CIPHERS))]
+        return [error_result if i == cipher_index else html.Div() for i in range(len(ALL_CIPHERS))], dash.no_update
 
     # Check if this is a brute force result
     is_brute_force = '\n' in result['result'] and 'Shift' in result['result']
@@ -1089,7 +1091,26 @@ def process_cipher(encrypt_clicks, decrypt_clicks, genkeys_clicks, input_texts, 
 
     result_div = html.Div(components)
 
-    return [result_div if i == cipher_index else html.Div() for i in range(len(ALL_CIPHERS))]
+    # If AES encrypt generated keys, pass them to the store
+    keys_data = dash.no_update
+    if selected_cipher == 'aes' and result.get('generated_keys'):
+        keys_data = result['generated_keys']
+
+    return [result_div if i == cipher_index else html.Div() for i in range(len(ALL_CIPHERS))], keys_data
+
+# Auto-fill AES key fields when keys are generated
+app.clientside_callback(
+    """
+    function(keys) {
+        if (!keys) return [window.dash_clientside.no_update, window.dash_clientside.no_update];
+        return [keys.public || '', keys.private || ''];
+    }
+    """,
+    [Output({'type': 'param', 'cipher': 'aes', 'name': 'public_key'}, 'value'),
+     Output({'type': 'param', 'cipher': 'aes', 'name': 'private_key'}, 'value')],
+    Input('aes-generated-keys', 'data'),
+    prevent_initial_call=True
+)
 
 # AI Teacher Chat Callback
 @app.callback(
